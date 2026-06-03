@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CorpAnalytics — Company Dashboard</title>
+<meta name="description" content="Interactive company analytics dashboard with SQL Server — employees, departments, projects with drill-through and natural language search."/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📊</div>
+      <span>CorpAnalytics</span>
+    </div>
+    <div class="nav-item active" data-view="overview" id="nav-overview">
+      <span class="nav-icon">🏠</span><span class="nav-label">Overview</span>
+    </div>
+    <div class="nav-item" data-view="employees" id="nav-employees">
+      <span class="nav-icon">👥</span><span class="nav-label">Employees</span>
+    </div>
+    <div class="nav-item" data-view="departments" id="nav-departments">
+      <span class="nav-icon">🏢</span><span class="nav-label">Departments</span>
+    </div>
+    <div class="nav-item" data-view="projects" id="nav-projects">
+      <span class="nav-icon">📁</span><span class="nav-label">Projects</span>
+    </div>
+    <div class="nav-item" data-view="management" id="nav-management">
+      <span class="nav-icon">👔</span><span class="nav-label">Management</span>
+    </div>
+    <div class="sidebar-spacer"></div>
+    <div class="nav-item" id="nav-settings" data-view="settings">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+    </div>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────── -->
+  <div id="main">
+    <!-- Top Bar -->
+    <div id="topbar">
+      <h1>Company <span>Analytics</span></h1>
+      <div id="nl-search-wrap">
+        <input id="nl-input" type="text" placeholder="🔍  Ask anything… e.g. 'show senior developers' or 'in progress projects'"/>
+        <button id="nl-search-btn" title="Search">➤</button>
+        <div id="nl-suggestions">
+          <div class="nl-chip" data-q="show all senior developers"><span>💡</span>show all senior developers</div>
+          <div class="nl-chip" data-q="engineers with salary above 80000"><span>💡</span>engineers with salary above 80000</div>
+          <div class="nl-chip" data-q="show in progress projects"><span>💡</span>show in progress projects</div>
+          <div class="nl-chip" data-q="employees hired after 2016"><span>💡</span>employees hired after 2016</div>
+          <div class="nl-chip" data-q="top 5 highest paid employees"><span>💡</span>top 5 highest paid employees</div>
+          <div class="nl-chip" data-q="show managers"><span>💡</span>show managers</div>
+          <div class="nl-chip" data-q="marketing employees"><span>💡</span>marketing employees</div>
+          <div class="nl-chip" data-q="completed projects"><span>💡</span>completed projects</div>
+        </div>
+      </div>
+      <div id="conn-status" onclick="openConnModal()">
+        <div id="conn-dot"></div>
+        <span id="conn-text">Connect DB</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- Disconnected screen -->
+      <div id="disconnected-screen">
+        <div class="icon">🔌</div>
+        <h2>Connect to SQL Server</h2>
+        <p>Click <strong>Connect DB</strong> in the top-right to enter your SQL Server details and start exploring your company data.</p>
+        <button class="btn btn-primary" onclick="openConnModal()">Connect to SQL Server</button>
+      </div>
+
+      <!-- NL result banner -->
+      <div id="nl-banner">
+        <div class="nl-query-tag">Results for: <strong id="nl-query-display"></strong></div>
+        <div class="nl-sql-tag" id="nl-sql-display" title=""></div>
+        <div class="nl-clear" onclick="clearNLSearch()">✕ Clear</div>
+      </div>
+
+      <!-- ── Overview View ─────────────────────────────────────── -->
+      <div id="view-overview" class="app-view" style="display:none">
+
+        <!-- KPI Row -->
+        <div id="kpi-row">
+          <div class="kpi-card fade-up fade-up-1">
+            <div class="kpi-icon">👤</div>
+            <div class="kpi-val" id="kpi-employees">—</div>
+            <div class="kpi-label">Total Employees</div>
+            <div class="kpi-sub" id="kpi-emp-sub">Active staff</div>
+          </div>
+          <div class="kpi-card fade-up fade-up-1">
+            <div class="kpi-icon">🏢</div>
+            <div class="kpi-val" id="kpi-depts">—</div>
+            <div class="kpi-label">Departments</div>
+            <div class="kpi-sub">Across the company</div>
+          </div>
+          <div class="kpi-card fade-up fade-up-2">
+            <div class="kpi-icon">📁</div>
+            <div class="kpi-val" id="kpi-projects">—</div>
+            <div class="kpi-label">Total Projects</div>
+            <div class="kpi-sub" id="kpi-proj-sub">—</div>
+          </div>
+          <div class="kpi-card fade-up fade-up-2">
+            <div class="kpi-icon">🚀</div>
+            <div class="kpi-val" id="kpi-active">—</div>
+            <div class="kpi-label">Active Projects</div>
+            <div class="kpi-sub">Currently in progress</div>
+          </div>
+          <div class="kpi-card fade-up fade-up-3">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-val" id="kpi-salary">—</div>
+            <div class="kpi-label">Avg Salary</div>
+            <div class="kpi-sub">Company-wide</div>
+          </div>
+          <div class="kpi-card fade-up fade-up-3">
+            <div class="kpi-icon">👔</div>
+            <div class="kpi-val" id="kpi-managers">—</div>
+            <div class="kpi-label">Managers</div>
+            <div class="kpi-sub">Leadership team</div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div id="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Employees by Department</div>
+                <div class="chart-sub">Headcount distribution</div>
+              </div>
+              <div class="chart-badge">Bar</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-dept-emp"></canvas></div>
+            <div class="chart-hint"><span>Click a bar</span> to drill into department employees</div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Average Salary by Department</div>
+                <div class="chart-sub">Compensation overview</div>
+              </div>
+              <div class="chart-badge">Bar</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-dept-salary"></canvas></div>
+            <div class="chart-hint"><span>Click a bar</span> to see salary breakdown</div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Project Status</div>
+                <div class="chart-sub">Distribution of projects</div>
+              </div>
+              <div class="chart-badge">Donut</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-proj-status"></canvas></div>
+            <div class="chart-hint"><span>Click a segment</span> to drill into that status</div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div id="chart-grid-lower">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Manager Span of Control</div>
+                <div class="chart-sub">Direct reports per manager</div>
+              </div>
+              <div class="chart-badge">Bar</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-manager-span"></canvas></div>
+            <div class="chart-hint"><span>Click a bar</span> to see direct reports</div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Project Budgets</div>
+                <div class="chart-sub">Budget allocation per project</div>
+              </div>
+              <div class="chart-badge">Bar</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-budget"></canvas></div>
+            <div class="chart-hint"><span>Click a bar</span> to see project team</div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Headcount by Job Title</div>
+                <div class="chart-sub">Top roles in the company</div>
+              </div>
+              <div class="chart-badge">Pie</div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-titles"></canvas></div>
+            <div class="chart-hint"><span>Click a segment</span> to filter employees</div>
+          </div>
+        </div>
+
+      </div><!-- /view-overview -->
+
+      <!-- ── Employees View ────────────────────────────────────── -->
+      <div id="view-employees" class="app-view" style="display:none">
+        <div class="view-header">
+          <div>
+            <div class="view-title">👥 All Employees</div>
+            <div class="view-sub" id="emp-count-label">Loading…</div>
+          </div>
+          <div class="view-controls">
+            <select id="emp-dept-filter" class="view-select">
+              <option value="">All Departments</option>
+            </select>
+            <input id="emp-search" type="text" class="view-search" placeholder="🔍 Search name or title…"/>
+          </div>
+        </div>
+        <div id="employees-table-wrap" class="table-wrap">
+          <div class="loading-state"><div class="spinner"></div> Loading employees…</div>
+        </div>
+      </div>
+
+      <!-- ── Departments View ──────────────────────────────────── -->
+      <div id="view-departments" class="app-view" style="display:none">
+        <div class="view-header">
+          <div>
+            <div class="view-title">🏢 Departments</div>
+            <div class="view-sub" id="dept-count-label">Loading…</div>
+          </div>
+        </div>
+        <div id="departments-grid" class="dept-grid">
+          <div class="loading-state"><div class="spinner"></div> Loading departments…</div>
+        </div>
+      </div>
+
+      <!-- ── Projects View ─────────────────────────────────────── -->
+      <div id="view-projects" class="app-view" style="display:none">
+        <div class="view-header">
+          <div>
+            <div class="view-title">📁 Projects</div>
+            <div class="view-sub" id="proj-count-label">Loading…</div>
+          </div>
+          <div class="view-controls">
+            <div id="proj-status-tabs" class="status-tabs">
+              <button class="status-tab active" data-status="">All</button>
+              <button class="status-tab" data-status="In Progress">In Progress</button>
+              <button class="status-tab" data-status="Completed">Completed</button>
+              <button class="status-tab" data-status="Planning">Planning</button>
+              <button class="status-tab" data-status="On Hold">On Hold</button>
+            </div>
+          </div>
+        </div>
+        <div id="projects-table-wrap" class="table-wrap">
+          <div class="loading-state"><div class="spinner"></div> Loading projects…</div>
+        </div>
+      </div>
+
+      <!-- ── Management View ───────────────────────────────────── -->
+      <div id="view-management" class="app-view" style="display:none">
+        <div class="view-header">
+          <div>
+            <div class="view-title">👔 Management</div>
+            <div class="view-sub" id="mgmt-count-label">Leadership hierarchy</div>
+          </div>
+        </div>
+        <div id="management-grid" class="mgmt-grid">
+          <div class="loading-state"><div class="spinner"></div> Loading management data…</div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── Drill-Through Panel ───────────────────────────────────── -->
+<div id="drill-panel">
+  <div id="drill-header">
+    <div class="drill-breadcrumb" id="drill-breadcrumb"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div class="drill-title" id="drill-title">Detail View</div>
+        <div class="drill-sub" id="drill-sub"></div>
+      </div>
+      <button class="drill-close" onclick="closeDrill()">✕ Close</button>
+    </div>
+  </div>
+  <div id="drill-body"></div>
+</div>
+
+<!-- ── Connection Modal ──────────────────────────────────────── -->
+<div id="modal-overlay">
+  <div id="conn-modal">
+    <div class="modal-title">🔌 SQL Server Connection</div>
+
+    <!-- Auth type toggle -->
+    <div class="auth-toggle">
+      <button class="auth-btn active" id="auth-btn-windows" onclick="setAuthType('windows')">🪟 Windows Auth</button>
+      <button class="auth-btn" id="auth-btn-sql" onclick="setAuthType('sql')">🔑 SQL Auth</button>
+    </div>
+
+    <div class="modal-sub" id="auth-sub">Windows Authentication — enter your Windows login credentials</div>
+    <div class="form-group">
+      <label>Server Name / Instance</label>
+      <input id="db-server" type="text" value="localhost" placeholder="e.g. localhost or .\SQLEXPRESS"/>
+    </div>
+    <div class="form-group">
+      <label>Database Name</label>
+      <input id="db-name" type="text" value="CompanyDB" placeholder="CompanyDB"/>
+    </div>
+
+    <!-- Windows Auth fields -->
+    <div id="windows-fields">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Windows Domain <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+          <input id="db-domain" type="text" placeholder="e.g. WORKGROUP or blank"/>
+        </div>
+        <div class="form-group">
+          <label>Windows Username</label>
+          <input id="db-user" type="text" placeholder="Your Windows username"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Windows Password</label>
+        <input id="db-pass" type="password" placeholder="Your Windows login password"/>
+      </div>
+    </div>
+
+    <!-- SQL Auth fields -->
+    <div id="sql-fields" style="display:none">
+      <div class="form-group">
+        <label>SQL Username</label>
+        <input id="db-sql-user" type="text" placeholder="sa or your SQL login"/>
+      </div>
+      <div class="form-group">
+        <label>SQL Password</label>
+        <input id="db-sql-pass" type="password" placeholder="SQL Server password"/>
+      </div>
+    </div>
+
+    <div class="modal-hint">
+      Common server names: <code>localhost</code> &nbsp; <code>.\SQLEXPRESS</code> &nbsp; <code>MYPC\MSSQLSERVER</code><br/>
+      Windows Auth: leave Domain blank for local accounts. SQL Auth: must be enabled in SQL Server config.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeConnModal()">Cancel</button>
+      <button class="btn btn-primary" id="connect-btn" onclick="connectDB()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────── -->
+<div id="toast">
+  <span id="toast-icon">✅</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/drillthrough.js"></script>
+<script src="js/nl-search.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
